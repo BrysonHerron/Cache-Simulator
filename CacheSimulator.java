@@ -58,16 +58,32 @@ public class CacheSimulator {
     public void go() throws FileNotFoundException{
         this.instructionList = getInstructions();
         initOutput();
-        int numSets = Integer.parseInt(this.instructionList.get(0).split(": ")[1]);
-        int setSize = Integer.parseInt(this.instructionList.get(1).split(": ")[1]);
+        int numSets = Integer.parseInt(this.instructionList.get(0).split(": "
+            )[1].trim());
+        int setSize = Integer.parseInt(this.instructionList.get(1).split(": "
+            )[1].trim());
         //Check numSets
         if (numSets <= 8192 && setSize <= 8) {
-            int lineSize = Integer.parseInt(this.instructionList.get(2).split(": ")[1]);
+            int lineSize = Integer.parseInt(this.instructionList.get(2).split(": "
+                )[1].trim());
             //Check lineSize
             if (lineSize >= 4 && lineSize % 2 == 0){
                 //continue code here
                 this.cacheArray = new String[numSets][setSize];
-                parseInstruction(this.instructionList.get(3), lineSize, numSets, setSize);
+                for (int i = 3; i < instructionList.size(); i++){
+                    Object[] typeIndOffTag = parseInstruction(this.instructionList.get(i), 
+                        lineSize, numSets, setSize);
+                    String type = (String) typeIndOffTag[0];
+                    int index = (int) typeIndOffTag[1];
+                    int offset = (int) typeIndOffTag[2];
+                    int tag = (int) typeIndOffTag[3];
+                    if (type.equals("read")){
+                        read(index, offset, tag);
+                    }
+                    else{
+                        write(index, offset, tag);
+                    }
+                }
             }
             else{
                 System.out.println("Illegal LineSize, Please correct the error and try again.");
@@ -75,7 +91,8 @@ public class CacheSimulator {
             }
         }
         else{
-            System.out.println("Illegal numSets/setSize, please correct the error and try again.");
+            System.out.println("Illegal numSets/setSize, please correct" + 
+                "the error and try again.");
             System.exit(0);
         }
         
@@ -116,22 +133,79 @@ public class CacheSimulator {
         return instructions;
     }
 
-    public void parseInstruction(String instruction, int lineSize, int numSets, int setSize){
+    public Object[] parseInstruction(String instruction, int lineSize, int numSets, int setSize) {
         String[] instructPieces = instruction.split(":");
+        Object[] typeIndOffTag = new Object[4];
         String type = instructPieces[0];
-        int size = Integer.parseInt(instructPieces[1]);
+    
+        // Parse the hex address from the instruction
         String hexAddress = instructPieces[2];
         int address = Integer.parseInt(hexAddress, 16);
-        String binaryAddress = String.format("%" + size + "s", Integer.toBinaryString(address)).replace(' ', '0');
-        int numIndexBits = (int) Math.round(Math.log(lineSize/setSize) / Math.log(2) );
-        int numOffsetBits = (int) Math.round(Math.log(numSets) / Math.log(2));
+        String binaryAddress = Integer.toBinaryString(address);
+    
+        // Calculate the total number of bits required for the binary address
+        int numIndexBits = (int) Math.ceil(Math.log(numSets) / Math.log(2));  // number of bits for index
+        int numOffsetBits = (int) Math.ceil(Math.log(lineSize) / Math.log(2)); // number of bits for offset
+        int totalBits = numIndexBits + numOffsetBits; // Total bits = index + offset
+    
+        // Pad the binary address to match the required total size
+        binaryAddress = String.format("%" + totalBits + "s", binaryAddress).replace(' ', '0');
+    
+        // Calculate the start positions
+        int offsetStart = binaryAddress.length() - numOffsetBits;
+        int indexStart = offsetStart - numIndexBits;
 
-        //Error somewhere
-        int index = Integer.parseInt(binaryAddress.substring(binaryAddress.length() - numIndexBits, binaryAddress.length()),2);
-        int offset = Integer.parseInt(binaryAddress.substring(binaryAddress.length() - numIndexBits - numOffsetBits, binaryAddress.length() - numIndexBits),2);
-        int tag = Integer.parseInt(binaryAddress.substring(0, binaryAddress.length() - numIndexBits - numOffsetBits),2);
-        System.out.println("Type: "+type+"\nIndex: "+index+"\nOffset: "+offset+"\nTag: ");
+        // Validate the binary address length
+        if (indexStart < 0) {
+            throw new IllegalArgumentException("Binary address too short. Ensure it has sufficient bits for tag, index, and offset.");
+        }
+
+        // Extract the tag, index, and offset
+        String tagBits = binaryAddress.substring(0, indexStart);
+        int tag = tagBits.isEmpty() ? 0 : Integer.parseInt(tagBits, 2);
+
+        int index = Integer.parseInt(binaryAddress.substring(indexStart, offsetStart), 2);
+        int offset = Integer.parseInt(binaryAddress.substring(offsetStart), 2);
+
+        // Debug Output
+        System.out.println("Tag: " + tag + ", Index: " + index + ", Offset: " + offset);
+
+    
+        // Populate result array with the extracted values
+        typeIndOffTag[0] = type;
+        typeIndOffTag[1] = index;
+        typeIndOffTag[2] = offset;
+        typeIndOffTag[3] = tag;
+    
+        return typeIndOffTag;
     }
+    
+    
+    
+    
+    
+
+    public void write(int index, int offset, int tag) {
+        
+    }
+
+    public void read(int index, int offset, int tag) {
+        
+    }
+
+    /* 
+    public int hitCheck(int tag, int index) {
+        for (int i = 0; i < setSize; i++) {
+            if (cache[index][i].tag != null && cache[index][i].tag.compareTo(tag) == 0)
+            {
+                return i;
+            } else {
+                return -1;
+            }
+
+        }
+    } */
+
 
 }
 
