@@ -47,7 +47,11 @@ public class CacheSimulator {
     /**
      * A 2d string array that will represent our cache
      */
-    private String[][] cacheArray;
+
+    private int setSize;
+    private int numSets;
+
+    private Block[][] cacheArray;
 
 
     public CacheSimulator(String fileName){
@@ -55,12 +59,60 @@ public class CacheSimulator {
         this.output = new StringBuilder();
     }
 
+    public void initCacheArray() {
+        Block[][] cacheArray = new Block[numSets][setSize];
+        for (int i = 0; i < numSets; i++) {
+            for (int j = 0; j < setSize; j++) {
+                cacheArray[i][j] = new Block();
+            }
+        }
+    }
+
+
+    public void write(int index, int tag) {
+        int blockIndex = hitCheck(index, tag);
+        Block block;
+        if (blockIndex != -1) {
+            hits++;
+            
+        } else {
+            misses++;
+            blockIndex = 
+        }
+    }
+
+    public void read(int index, int tag) {
+        int blockIndex = hitCheck(index, tag);
+        if (blockIndex != -1) {
+            hits++;
+        } else {
+            misses++;
+
+        }
+    }
+
+    
+    public int hitCheck(int index, int tag) {
+        for (int i = 0; i < setSize; i++) {
+            if (cacheArray[index][i].tag == tag)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    public int findEmptyBlock(int index, int tag) {
+        
+    }
+
+
     public void go() throws FileNotFoundException{
         this.instructionList = getInstructions();
         initOutput();
-        int numSets = Integer.parseInt(this.instructionList.get(0).split(": "
+        numSets = Integer.parseInt(this.instructionList.get(0).split(": "
             )[1].trim());
-        int setSize = Integer.parseInt(this.instructionList.get(1).split(": "
+        setSize = Integer.parseInt(this.instructionList.get(1).split(": "
             )[1].trim());
         //Check numSets
         if (numSets <= 8192 && setSize <= 8) {
@@ -69,7 +121,7 @@ public class CacheSimulator {
             //Check lineSize
             if (lineSize >= 4 && lineSize % 2 == 0){
                 //continue code here
-                this.cacheArray = new String[numSets][setSize];
+                initCacheArray();
                 for (int i = 3; i < instructionList.size(); i++){
                     Object[] typeIndOffTag = parseInstruction(this.instructionList.get(i), 
                         lineSize, numSets, setSize);
@@ -77,11 +129,12 @@ public class CacheSimulator {
                     int index = (int) typeIndOffTag[1];
                     int offset = (int) typeIndOffTag[2];
                     int tag = (int) typeIndOffTag[3];
+
                     if (type.equals("read")){
-                        read(index, offset, tag);
+                        read(index, tag);
                     }
                     else{
-                        write(index, offset, tag);
+                        write(index, tag);
                     }
                 }
             }
@@ -185,28 +238,7 @@ public class CacheSimulator {
     
     
 
-    public void write(int index, int offset, int tag) {
-        
-    }
-
-    public void read(int index, int offset, int tag) {
-        
-    }
-
-    /* 
-    public int hitCheck(int tag, int index) {
-        for (int i = 0; i < setSize; i++) {
-            if (cache[index][i].tag != null && cache[index][i].tag.compareTo(tag) == 0)
-            {
-                return i;
-            } else {
-                return -1;
-            }
-
-        }
-    } */
-
-
+    
 }
 
 
