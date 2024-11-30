@@ -62,13 +62,14 @@ public class CacheSimulator {
     public void initCacheArray() {
         Block[][] cacheArray = new Block[numSets][setSize];
         for (int i = 0; i < numSets; i++) {
+            
             for (int j = 0; j < setSize; j++) {
                 cacheArray[i][j] = new Block();
             }
         }
     }
 
-
+    //work in progress
     public void write(int index, int tag) {
         int blockIndex = hitCheck(index, tag);
         Block block;
@@ -77,21 +78,31 @@ public class CacheSimulator {
             
         } else {
             misses++;
-            blockIndex = 
+            blockIndex = findEmptyBlock(index);
+            cacheArray[index][blockIndex].tag = tag;
         }
     }
 
+    //work in progress
     public void read(int index, int tag) {
         int blockIndex = hitCheck(index, tag);
         if (blockIndex != -1) {
             hits++;
         } else {
             misses++;
-
         }
     }
 
-    
+    /**
+     * Used to determine if a cache access was a hit or miss.
+     * 
+     * On a hit it returns the index of a block with a given cache index.
+     * On a miss it returns -1.
+     * 
+     * @param index The index of the cache being read from or written to.
+     * @param tag The tag of the block being searched for.
+     * @return Returns the index of the block in the cache array
+     */
     public int hitCheck(int index, int tag) {
         for (int i = 0; i < setSize; i++) {
             if (cacheArray[index][i].tag == tag)
@@ -102,8 +113,46 @@ public class CacheSimulator {
         return -1;
     }
 
-    public int findEmptyBlock(int index, int tag) {
-        
+    /**
+     * Finds the index of the block that will be used.
+     * 
+     * If there are empty blocks, those are used first.
+     * If no empty blocks, overwrites least recently used.
+     * 
+     * @param index index being searched
+     * @return the index in cacheArray[index] that will be used
+     */
+    public int findEmptyBlock(int index) {
+        int leastRecentIndex = 0;
+        for (int i = 0; i < cacheArray[index].length; i++) {
+            // returns the index of the first empty block
+            if (cacheArray[index][i].isEmpty) {
+                return i;
+            }
+            // sets leastRecentIndex to i if the current block being checked
+            // was used less recently than the block at leastRecentIndex
+            // a greater recency value represents less recent
+            else if (cacheArray[index][leastRecentIndex].recency >= cacheArray[index][i].recency) {
+                leastRecentIndex = i;
+            }
+        }
+        return leastRecentIndex;
+    }
+
+    /**
+     * Updates the recency data on all of the blocks at a given index.
+     * 
+     * Higher recency values represent a less recently used block.
+     * Resets the block being accessed to zero.
+     * 
+     * @param blockIndex the specific block in a given index that was just used
+     * @param index the index of the most recently used block
+     */
+    public void updateRecency(int blockIndex, int index) {
+        for (int i = 0; i < cacheArray[index].length; i++) {
+            cacheArray[index][i].recency++;
+        }
+        cacheArray[index][blockIndex].recency = 0;
     }
 
 
