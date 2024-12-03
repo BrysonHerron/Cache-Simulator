@@ -36,13 +36,6 @@ public class CacheSimulator {
      */
     private int hits;
     private int misses;
-    private int accesses;
-
-    /**
-     * The ratios of total accesses to hits and misses.
-     */
-    private float hitRatio;
-    private float missRatio;
 
     /**
      * A 2d string array that will represent our cache
@@ -57,10 +50,12 @@ public class CacheSimulator {
     public CacheSimulator(String fileName){
         this.file = new File(fileName);
         this.output = new StringBuilder();
+        this.hits = 0;
+        this.misses = 0;
     }
 
     public void initCacheArray() {
-        Block[][] cacheArray = new Block[numSets][setSize];
+        this.cacheArray = new Block[numSets][setSize];
         for (int i = 0; i < numSets; i++) {
             
             for (int j = 0; j < setSize; j++) {
@@ -70,27 +65,47 @@ public class CacheSimulator {
     }
 
     //work in progress
-    public void write(int index, int tag) {
+    public int write(int index, int tag) {
         int blockIndex = hitCheck(index, tag);
-        Block block;
+        int memRefs = 0;
         if (blockIndex != -1) {
-            hits++;
-            
+            Block block = cacheArray[index][blockIndex];
+            this.hits++;
+            block.isDirty = true;
         } else {
-            misses++;
+            this.misses++;
             blockIndex = findEmptyBlock(index);
-            cacheArray[index][blockIndex].tag = tag;
+            Block block = cacheArray[index][blockIndex];
+            block.tag = tag;
+            block.isEmpty = false;
+            memRefs++;
+            if (block.isDirty){
+                memRefs++;
+            }
         }
+        return memRefs;
     }
 
     //work in progress
-    public void read(int index, int tag) {
+    public int read(int index, int tag) {
         int blockIndex = hitCheck(index, tag);
+        int memRefs = 0;
         if (blockIndex != -1) {
-            hits++;
+            this.hits++;
         } else {
-            misses++;
+            this.misses++;
+            blockIndex = findEmptyBlock(index);
+            Block block = cacheArray[index][blockIndex];
+            block.tag = tag;
+            block.isEmpty = false;
+            memRefs++;
+            if (block.isDirty) {
+                memRefs++;
+            }
+            block.isDirty = false;
         }
+
+        return memRefs;
     }
 
     /**
@@ -159,6 +174,8 @@ public class CacheSimulator {
     public void go() throws FileNotFoundException{
         this.instructionList = getInstructions();
         initOutput();
+        this.output.append("\n");
+        int numAccesses = 0;
         numSets = Integer.parseInt(this.instructionList.get(0).split(": "
             )[1].trim());
         setSize = Integer.parseInt(this.instructionList.get(1).split(": "
@@ -172,20 +189,52 @@ public class CacheSimulator {
                 //continue code here
                 initCacheArray();
                 for (int i = 3; i < instructionList.size(); i++){
-                    Object[] typeIndOffTag = parseInstruction(this.instructionList.get(i), 
+                    int currentMiss = this.misses;
+                    Object[] typeIndOffTagAddr = parseInstruction(this.instructionList.get(i), 
                         lineSize, numSets, setSize);
-                    String type = (String) typeIndOffTag[0];
-                    int index = (int) typeIndOffTag[1];
-                    int offset = (int) typeIndOffTag[2];
-                    int tag = (int) typeIndOffTag[3];
-
+                    String type = (String) typeIndOffTagAddr[0];
+                    int index = (int) typeIndOffTagAddr[1];
+                    int offset = (int) typeIndOffTagAddr[2];
+                    int tag = (int) typeIndOffTagAddr[3];
+                    String addr = (String) typeIndOffTagAddr[4];
+                    int memRefs = 0;
                     if (type.equals("read")){
-                        read(index, tag);
+                        memRefs = read(index, tag);
                     }
                     else{
-                        write(index, tag);
+                        memRefs = write(index, tag);
                     }
+                    numAccesses++;
+                    String hitMiss;
+                    if (currentMiss < this.misses){
+                        hitMiss = "miss";
+                    }
+                    else{
+                        hitMiss = "hit";
+                    }
+                    String format = " %-8s %-10s %-4d %-6d %-6d %-6s %-3d%n";
+                    String formattedLine = String.format(format,
+                        type,       
+                        addr,       
+                        tag,
+                        index,
+                        offset,
+                        hitMiss,
+                        memRefs
+                    );
+                    this.output.append(formattedLine); // Append the formatted line
                 }
+                Float hitRatio = Float.valueOf(this.hits)/numAccesses;
+                Float missRatio = Float.valueOf(this.misses)/numAccesses;
+                this.output.append("""
+                                   \n\n\nSimulation Summary Statistics
+                                   -----------------------------
+                                   Total hits       :""").append(" ").append(
+                    this.hits).append("\nTotal misses     : ").append(this.misses).append(
+                        "\nTotal accesses   : ").append(numAccesses).append(
+                            "\nHit ratio        : ").append(hitRatio).append(
+                            "\nMiss ratio       : ").append(missRatio);
+                System.out.println(this.output);
             }
             else{
                 System.out.println("Illegal LineSize, Please correct the error and try again.");
@@ -237,7 +286,7 @@ public class CacheSimulator {
 
     public Object[] parseInstruction(String instruction, int lineSize, int numSets, int setSize) {
         String[] instructPieces = instruction.split(":");
-        Object[] typeIndOffTag = new Object[4];
+        Object[] typeIndOffTagAddr = new Object[5];
         String type = instructPieces[0];
     
         // Parse the hex address from the instruction
@@ -246,12 +295,15 @@ public class CacheSimulator {
         String binaryAddress = Integer.toBinaryString(address);
     
         // Calculate the total number of bits required for the binary address
-        int numIndexBits = (int) Math.ceil(Math.log(numSets) / Math.log(2));  // number of bits for index
-        int numOffsetBits = (int) Math.ceil(Math.log(lineSize) / Math.log(2)); // number of bits for offset
+        // number of bits for index
+        int numIndexBits = (int) Math.ceil(Math.log(numSets) / Math.log(2));
+         // number of bits for offset
+        int numOffsetBits = (int) Math.ceil(Math.log(lineSize) / Math.log(2));
         int totalBits = numIndexBits + numOffsetBits; // Total bits = index + offset
     
         // Pad the binary address to match the required total size
-        binaryAddress = String.format("%" + totalBits + "s", binaryAddress).replace(' ', '0');
+        binaryAddress = String.format("%" + totalBits + "s", binaryAddress).replace(
+            ' ', '0');
     
         // Calculate the start positions
         int offsetStart = binaryAddress.length() - numOffsetBits;
@@ -259,7 +311,9 @@ public class CacheSimulator {
 
         // Validate the binary address length
         if (indexStart < 0) {
-            throw new IllegalArgumentException("Binary address too short. Ensure it has sufficient bits for tag, index, and offset.");
+            throw new IllegalArgumentException("""
+                Binary address too short. Ensure it has sufficient bits for tag, index, and offset.
+                """);
         }
 
         // Extract the tag, index, and offset
@@ -269,17 +323,14 @@ public class CacheSimulator {
         int index = Integer.parseInt(binaryAddress.substring(indexStart, offsetStart), 2);
         int offset = Integer.parseInt(binaryAddress.substring(offsetStart), 2);
 
-        // Debug Output
-        System.out.println("Tag: " + tag + ", Index: " + index + ", Offset: " + offset);
-
-    
         // Populate result array with the extracted values
-        typeIndOffTag[0] = type;
-        typeIndOffTag[1] = index;
-        typeIndOffTag[2] = offset;
-        typeIndOffTag[3] = tag;
+        typeIndOffTagAddr[0] = type;
+        typeIndOffTagAddr[1] = index;
+        typeIndOffTagAddr[2] = offset;
+        typeIndOffTagAddr[3] = tag;
+        typeIndOffTagAddr[4] = hexAddress;
     
-        return typeIndOffTag;
+        return typeIndOffTagAddr;
     }
     
     
