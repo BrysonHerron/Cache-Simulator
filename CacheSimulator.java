@@ -3,10 +3,9 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-/**
- * The Cache class serves as the main entry point for running the Cache simulator
- * It initializes a Cache instance with a specified file path provided as a command-line 
- * argument and executes the simulator with the instructions from the file.
+/**the main entry point for running the Cache simulator
+ * The CacheSimulator class serves as 
+ * 
  * @author Bryson Herron
  * @author John Hollis
  * 
@@ -47,6 +46,11 @@ public class CacheSimulator {
     private Block[][] cacheArray;
 
 
+    /**
+     * Constructor for CacheSimulator objects.
+     * 
+     * @param fileName name of the input file
+     */
     public CacheSimulator(String fileName){
         this.file = new File(fileName);
         this.output = new StringBuilder();
@@ -54,6 +58,12 @@ public class CacheSimulator {
         this.misses = 0;
     }
 
+    /**
+     * Initializes the 2D array that stores the blocks of the cache.
+     * 
+     * The outer array represents the indexes of the cache and the 
+     * inner array represents the blocks themselves.
+     */
     public void initCacheArray() {
         this.cacheArray = new Block[numSets][setSize];
         for (int i = 0; i < numSets; i++) {
@@ -64,7 +74,12 @@ public class CacheSimulator {
         }
     }
 
-    //work in progress
+    /**
+     * 
+     * @param index index of the block being accessed
+     * @param tag tag of the block being accessed
+     * @return the number of memory references(used in output)
+     */
     public int write(int index, int tag) {
         int blockIndex = hitCheck(index, tag);
         System.out.println(blockIndex);
