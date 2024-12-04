@@ -8,5 +8,6 @@ public class Block {
         isDirty = false;
         isEmpty = true;
         recency = 0;
+        tag = -1;
     }
 }

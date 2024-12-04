@@ -67,11 +67,13 @@ public class CacheSimulator {
     //work in progress
     public int write(int index, int tag) {
         int blockIndex = hitCheck(index, tag);
+        System.out.println(blockIndex);
         int memRefs = 0;
         if (blockIndex != -1) {
             Block block = cacheArray[index][blockIndex];
             this.hits++;
             block.isDirty = true;
+            updateRecency(blockIndex, index);
         } else {
             this.misses++;
             blockIndex = findEmptyBlock(index);
@@ -81,8 +83,10 @@ public class CacheSimulator {
             memRefs++;
             if (block.isDirty){
                 memRefs++;
+                updateRecency(blockIndex, index);
             }
         }
+        
         return memRefs;
     }
 
@@ -92,6 +96,7 @@ public class CacheSimulator {
         int memRefs = 0;
         if (blockIndex != -1) {
             this.hits++;
+            updateRecency(blockIndex, index);
         } else {
             this.misses++;
             blockIndex = findEmptyBlock(index);
@@ -103,8 +108,9 @@ public class CacheSimulator {
                 memRefs++;
             }
             block.isDirty = false;
+            updateRecency(blockIndex, index);
         }
-
+        
         return memRefs;
     }
 
@@ -147,7 +153,7 @@ public class CacheSimulator {
             // sets leastRecentIndex to i if the current block being checked
             // was used less recently than the block at leastRecentIndex
             // a greater recency value represents less recent
-            else if (cacheArray[index][leastRecentIndex].recency >= cacheArray[index][i].recency) {
+            else if (cacheArray[index][leastRecentIndex].recency < cacheArray[index][i].recency) {
                 leastRecentIndex = i;
             }
         }
