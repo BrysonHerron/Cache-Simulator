@@ -3,9 +3,10 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-/**the main entry point for running the Cache simulator
- * The CacheSimulator class serves as 
- * 
+/**
+ * The Cache class serves as the main entry point for running the Cache simulator
+ * It initializes a Cache instance with a specified file path provided as a command-line 
+ * argument and executes the simulator with the instructions from the file.
  * @author Bryson Herron
  * @author John Hollis
  * 
@@ -44,7 +45,6 @@ public class CacheSimulator {
     private int numSets;
 
     private Block[][] cacheArray;
-
 
     /**
      * Constructor for CacheSimulator objects.
@@ -105,7 +105,12 @@ public class CacheSimulator {
         return memRefs;
     }
 
-    //work in progress
+    /**
+     * 
+     * @param index the index of the block being accessed
+     * @param tag the tag of the block being accessed
+     * @return the number of memory references
+     */
     public int read(int index, int tag) {
         int blockIndex = hitCheck(index, tag);
         int memRefs = 0;
@@ -191,7 +196,11 @@ public class CacheSimulator {
         cacheArray[index][blockIndex].recency = 0;
     }
 
-
+    /**
+     * The main method for the CacheSimulator cache. This method calls all other neccesary methods
+     * and displays the final result for the function.
+     * @throws FileNotFoundException
+     */
     public void go() throws FileNotFoundException{
         this.instructionList = getInstructions();
         initOutput();
@@ -218,7 +227,7 @@ public class CacheSimulator {
                     int offset = (int) typeIndOffTagAddr[2];
                     int tag = (int) typeIndOffTagAddr[3];
                     String addr = (String) typeIndOffTagAddr[4];
-                    int memRefs = 0;
+                    int memRefs;
                     if (type.equals("read")){
                         memRefs = read(index, tag);
                     }
@@ -233,7 +242,7 @@ public class CacheSimulator {
                     else{
                         hitMiss = "hit";
                     }
-                    String format = " %-8s %-10s %-4d %-6d %-6d %-6s %-3d%n";
+                    String format = " %-10s %-9s %-4d %-7d %-3d %4s       %-7d%n";
                     String formattedLine = String.format(format,
                         type,       
                         addr,       
@@ -243,7 +252,8 @@ public class CacheSimulator {
                         hitMiss,
                         memRefs
                     );
-                    this.output.append(formattedLine); // Append the formatted line
+                     // Append the formatted line
+                    this.output.append(formattedLine);
                 }
                 Float hitRatio = Float.valueOf(this.hits)/numAccesses;
                 Float missRatio = Float.valueOf(this.misses)/numAccesses;
@@ -304,7 +314,16 @@ public class CacheSimulator {
         scanner1.close();
         return instructions;
     }
-
+    /**
+     * This function takes in a string instruction and some information, then parses it and returns
+     * the parsed pieces back in an object array
+     * 
+     * @param instruction the string instruction
+     * @param lineSize the lineSize for the cache
+     * @param numSets the number of sets in the Cache
+     * @param setSize the size of the sets in the Cache
+     * @return an object array containing the parsed instruction pieces
+     */
     public Object[] parseInstruction(String instruction, int lineSize, int numSets, int setSize) {
         String[] instructPieces = instruction.split(":");
         Object[] typeIndOffTagAddr = new Object[5];
