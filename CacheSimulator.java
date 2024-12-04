@@ -3,8 +3,10 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Scanner;
 
-/**the main entry point for running the Cache simulator
- * The CacheSimulator class serves as 
+/**
+ * The CacheSimulator class serves as the main entry point for running the Cache simulator.
+ * The cache is represented in the code by a 2D array and the blocks of the array 
+ * are represented by Block objects.
  * 
  * @author Bryson Herron
  * @author John Hollis
@@ -105,8 +107,17 @@ public class CacheSimulator {
         return memRefs;
     }
 
-    //work in progress
+    /**
+     * This function represents a read instruction.
+     * 
+     * @param index index of the block being read
+     * @param tag tag of the block being read
+     * @return the number of memory references(used in output)
+     */
     public int read(int index, int tag) {
+        // checks for the index in tag in the cache.
+        // assigns the location to blockIndex
+        // or -1 if not in cache
         int blockIndex = hitCheck(index, tag);
         int memRefs = 0;
         if (blockIndex != -1) {
